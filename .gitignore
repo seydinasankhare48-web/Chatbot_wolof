@@ -1,0 +1,7 @@
+.env
+.venv/
+__pycache__/
+static/audios/*
+!static/audios/.gitkeep
+models/
+vendor/

@@ -1,0 +1,46 @@
+# --- Application ---
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-dotenv>=1.0
+pydantic>=2.6
+
+# --- LLM : Gemini (Google AI Studio) ---
+google-genai>=1.0
+
+# --- RAG ---
+sentence-transformers>=2.7
+faiss-cpu>=1.8
+numpy>=1.26
+pypdf>=4.0
+
+# --- TTS : XTTS v2 wolof (code Coqui TTS 0.22 modifié par GalsenAI) ---
+# torchaudio >= 2.9 a retiré torchaudio.load (utilisé par XTTS) ; torch et torchaudio
+# doivent avoir la même version. CPU : --extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.6,<2.9
+torchaudio>=2.6,<2.9
+# Coqui TTS 0.22 utilise une API de génération retirée de transformers 4.50
+transformers>=4.43,<4.50
+# coqpit et trainer d'origine ne s'installent pas sous Python 3.12 :
+# on utilise les forks maintenus par Idiap, qui fournissent les mêmes modules.
+coqpit-config
+coqui-tts-trainer<0.2
+soundfile>=0.12
+librosa>=0.10
+einops>=0.6
+num2words
+spacy>=3
+pypinyin
+hangul_romanize
+anyascii
+unidecode
+inflect
+fsspec
+pyyaml
+# importés par le package TTS de GalsenAI
+mutagen
+pandas
+matplotlib
+
+# --- Téléchargement du modèle (download_xtts.py) ---
+huggingface_hub
+gdown

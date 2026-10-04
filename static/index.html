@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chatbot Wolof</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen flex flex-col">
+
+  <!-- En-tête -->
+  <header class="bg-emerald-700 text-white px-4 py-3 shadow">
+    <div class="max-w-3xl mx-auto">
+      <h1 class="text-lg font-semibold">Chatbot Wolof</h1>
+      <p class="text-sm text-emerald-100">Laaj ma sa laaj, ma tontu la ci wolof, ak baat.</p>
+    </div>
+  </header>
+
+  <!-- Zone de chat -->
+  <main id="chat" class="flex-1 overflow-y-auto px-4 py-6">
+    <div id="messages" class="max-w-3xl mx-auto flex flex-col gap-3">
+      <div class="self-start max-w-[80%] bg-white text-slate-800 rounded-2xl rounded-bl-sm px-4 py-2 shadow-sm">
+        Salaamaalekum! Naka laa la mana dimbali tey?
+      </div>
+    </div>
+  </main>
+
+  <!-- Lecteur audio + formulaire -->
+  <footer class="bg-white border-t border-slate-200 px-4 py-3">
+    <div class="max-w-3xl mx-auto flex flex-col gap-3">
+      <audio id="player" controls class="w-full h-10"></audio>
+
+      <!-- Indicateur de chargement -->
+      <div id="loader" class="hidden items-center gap-2 text-sm text-slate-500">
+        <svg class="animate-spin h-4 w-4 text-emerald-600" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        <span id="loader-text">Génération de la réponse...</span>
+      </div>
+
+      <form id="form" class="flex gap-2">
+        <input id="input" type="text" autocomplete="off" required maxlength="2000"
+               placeholder="Bindal sa laaj fii..."
+               class="flex-1 rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        <button id="send" type="submit"
+                class="rounded-xl bg-emerald-600 px-5 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          Yónne
+        </button>
+      </form>
+    </div>
+  </footer>
+
+  <script>
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+    const sendBtn = document.getElementById("send");
+    const messages = document.getElementById("messages");
+    const chat = document.getElementById("chat");
+    const loader = document.getElementById("loader");
+    const loaderText = document.getElementById("loader-text");
+    const player = document.getElementById("player");
+
+    /** Ajoute une bulle de discussion (role : "user" | "assistant" | "error"). */
+    function addBubble(text, role) {
+      const div = document.createElement("div");
+      const base = "max-w-[80%] px-4 py-2 rounded-2xl shadow-sm whitespace-pre-wrap";
+      const styles = {
+        user: "self-end bg-emerald-600 text-white rounded-br-sm",
+        assistant: "self-start bg-white text-slate-800 rounded-bl-sm",
+        error: "self-start bg-red-50 text-red-700 border border-red-200 rounded-bl-sm text-sm",
+      };
+      div.className = `${base} ${styles[role]}`;
+      div.textContent = text; // textContent : pas d'injection HTML
+      messages.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    /** Affiche ou masque l'indicateur de chargement et verrouille le formulaire. */
+    function setLoading(isLoading) {
+      loader.classList.toggle("hidden", !isLoading);
+      loader.classList.toggle("flex", isLoading);
+      input.disabled = isLoading;
+      sendBtn.disabled = isLoading;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const message = input.value.trim();
+      if (!message) return;
+
+      addBubble(message, "user");
+      input.value = "";
+      setLoading(true);
+      loaderText.textContent = "Génération du texte et de l'audio en wolof...";
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = typeof data.detail === "string" ? data.detail : `Erreur ${res.status}`;
+          throw new Error(detail);
+        }
+
+        addBubble(data.text_response, "assistant");
+
+        if (data.audio_url) {
+          // Met à jour le lecteur et lance la lecture automatiquement
+          player.src = data.audio_url;
+          player.load();
+          player.play().catch(() => {
+            /* lecture auto bloquée par le navigateur : l'utilisateur peut cliquer sur Play */
+          });
+        } else if (data.tts_error) {
+          addBubble(`Audio indisponible : ${data.tts_error}`, "error");
+        }
+      } catch (err) {
+        addBubble(`Erreur : ${err.message}`, "error");
+      } finally {
+        setLoading(false);
+        input.focus();
+      }
+    });
+  </script>
+</body>
+</html>
